@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import "./App.css";
 
@@ -11,12 +12,17 @@ function App() {
   const [editTitle, setEditTitle] = useState("");
   const [editCompleted, setEditCompleted] = useState(false);
 
+  const API_URL = "https://task-management-ten-fawn.vercel.app";
+
   // GET tasks
   useEffect(() => {
-    fetch("http://localhost:4000/tasks")
+    fetch(`${API_URL}/tasks`)
       .then((response) => response.json())
       .then((data) => {
         setTasks(data);
+      })
+      .catch((error) => {
+        console.log("GET tasks error:", error);
       });
   }, []);
 
@@ -33,7 +39,7 @@ function App() {
       completed: completed,
     };
 
-    fetch("http://localhost:4000/tasks", {
+    fetch(`${API_URL}/tasks`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -42,15 +48,18 @@ function App() {
     })
       .then((response) => response.json())
       .then((data) => {
-        setTasks([...tasks, data]);
+        setTasks((prevTasks) => [...prevTasks, data]);
         setTitle("");
         setCompleted(false);
+      })
+      .catch((error) => {
+        console.log("POST task error:", error);
       });
   };
 
   // Start Editing
   const editTask = (task) => {
-    setEditingId(task.id);
+    setEditingId(task._id);
     setEditTitle(task.title);
     setEditCompleted(task.completed);
   };
@@ -59,12 +68,16 @@ function App() {
   const updateTask = (e) => {
     e.preventDefault();
 
+    if (!editTitle.trim()) {
+      return;
+    }
+
     const updatedTask = {
       title: editTitle,
       completed: editCompleted,
     };
 
-    fetch(`http://localhost:4000/tasks/${editingId}`, {
+    fetch(`${API_URL}/tasks/${editingId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -73,32 +86,39 @@ function App() {
     })
       .then((response) => response.json())
       .then((data) => {
-        setTasks(
-          tasks.map((task) =>
-            task.id === editingId ? data.task : task
+        setTasks((prevTasks) =>
+          prevTasks.map((task) =>
+            task._id === editingId ? data.task : task
           )
         );
 
         setEditingId(null);
         setEditTitle("");
         setEditCompleted(false);
+      })
+      .catch((error) => {
+        console.log("PUT task error:", error);
       });
   };
 
   // DELETE - Delete Task
   const deleteTask = (id) => {
-    fetch(`http://localhost:4000/tasks/${id}`, {
+    fetch(`${API_URL}/tasks/${id}`, {
       method: "DELETE",
     })
       .then((response) => response.json())
       .then(() => {
-        setTasks(tasks.filter((task) => task.id !== id));
+        setTasks((prevTasks) =>
+          prevTasks.filter((task) => task._id !== id)
+        );
+      })
+      .catch((error) => {
+        console.log("DELETE task error:", error);
       });
   };
 
   return (
     <div className="app">
-
       <div className="container">
 
         {/* Header */}
@@ -109,7 +129,6 @@ function App() {
 
         {/* Add Task Form */}
         <form className="task-form" onSubmit={addTask}>
-
           <input
             className="task-input"
             type="text"
@@ -130,13 +149,11 @@ function App() {
           <button className="add-btn" type="submit">
             + Add Task
           </button>
-
         </form>
 
         {/* Update Form */}
         {editingId !== null && (
           <form className="edit-form" onSubmit={updateTask}>
-
             <h2>Edit Task</h2>
 
             <input
@@ -156,7 +173,6 @@ function App() {
             </label>
 
             <div className="edit-buttons">
-
               <button className="update-btn" type="submit">
                 Update Task
               </button>
@@ -164,19 +180,20 @@ function App() {
               <button
                 className="cancel-btn"
                 type="button"
-                onClick={() => setEditingId(null)}
+                onClick={() => {
+                  setEditingId(null);
+                  setEditTitle("");
+                  setEditCompleted(false);
+                }}
               >
                 Cancel
               </button>
-
             </div>
-
           </form>
         )}
 
         {/* Tasks */}
         <div className="tasks-section">
-
           <div className="tasks-header">
             <h2>My Tasks</h2>
 
@@ -192,13 +209,10 @@ function App() {
             </div>
           ) : (
             <div className="task-list">
-
               {tasks.map((task) => (
-
-                <div className="task-card" key={task.id}>
+                <div className="task-card" key={task._id}>
 
                   <div className="task-info">
-
                     <h3>{task.title}</h3>
 
                     <span
@@ -208,15 +222,11 @@ function App() {
                           : "status pending"
                       }
                     >
-                      {task.completed
-                        ? "Completed"
-                        : "Pending"}
+                      {task.completed ? "Completed" : "Pending"}
                     </span>
-
                   </div>
 
                   <div className="task-actions">
-
                     <button
                       className="edit-btn"
                       onClick={() => editTask(task)}
@@ -226,24 +236,19 @@ function App() {
 
                     <button
                       className="delete-btn"
-                      onClick={() => deleteTask(task.id)}
+                      onClick={() => deleteTask(task._id)}
                     >
                       Delete
                     </button>
-
                   </div>
 
                 </div>
-
               ))}
-
             </div>
           )}
-
         </div>
 
       </div>
-
     </div>
   );
 }
